@@ -1,5 +1,7 @@
 # 🕵️ Steganography Web App
 
+> This project was built with the assistance of modern AI tools (incl. LLMs) for rapid design, code suggestions, and documentation.
+
 A modern, accessible Flask app to hide messages (or small files) inside PNG images using strong encryption and robust LSB steganography. You get previews, SHA-256 integrity, drag and drop, capacity meter, clipboard copy, dark/light themes, and more. Perfect for learning, private sharing, or privacy-first workflows.
 
 ---
@@ -13,9 +15,9 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 
 ## ⚡ Quick Features Overview
 
-- **Drag & Drop:** Effortless file uploads for both cover image and file to hide.
+- **Drag & Drop:** Friendly, accessible file uploads for both cover image and file to hide.
 - **Download Preview:** Instantly preview and download your stego image, with a SHA-256 hash fingerprint.
-- **Image Capacity Meter:** See how much of your image storage you're using—get warnings if you go over.
+- **Image Capacity Meter:** Live feedback showing how much your data will use (and warnings if you go over).
 - **Clipboard-Friendly:** Copy decoded secrets with a single click.
 - **File Hiding:** Optionally embed a small file (PDF, ZIP, TXT...) instead of (or with) text.
 - **Session Management:** Export/import your session history.
@@ -43,13 +45,13 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 
 ## 🛠️ Techniques Used
 
-| Step                | Technique                     | Purpose                                              |
-|---------------------|------------------------------|------------------------------------------------------|
-| Embedding message   | LSB (Least Significant Bit)   | Reliable, undetectable pixel modifications           |
-| Secret protection   | Fernet symmetric encryption   | Strong password-based message/file encryption        |
-| End-marking/data    | Base64 encoding + `||END||`   | Robust, unbreakable message extraction boundaries    |
-| Hidden file support | `[FILE]:filename:base64...`   | Painless embedding/recovery of files                 |
-| Integrity           | SHA-256 hash                  | Lets you verify if your image is still authentic     |
+| Step                | Technique                    | Purpose                                          |
+|---------------------|-----------------------------|--------------------------------------------------|
+| Embedding message   | LSB (Least Significant Bit)  | Reliable, undetectable pixel modifications       |
+| Secret protection   | Fernet symmetric encryption  | Strong password-based message/file encryption    |
+| End-marking/data    | Base64 encoding + `||END||`  | Robust, unbreakable message extraction boundaries|
+| Hidden file support | `[FILE]:filename:base64...`  | Painless embedding/recovery of files             |
+| Integrity           | SHA-256 hash                 | Lets you verify if your image is still authentic |
 
 ---
 
@@ -57,7 +59,7 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 
 - **Transparent Capacity Meter:**  
   Get live feedback as you type—never try to hide more than your image can store.
-- **Instant Image Preview:**  
+- **Instant Image/Result Preview:**  
   Check your stego image visually and by hash before download.
 - **Clipboard Button:**  
   Instantly put secrets into your clipboard (desktop/mobile).
@@ -74,8 +76,8 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 
 > For a preview, see in-app: drag an image, type a secret, and see the modern glassy interface, dark and light toggle, and capacity bars.
 
-![alt text](screenshots/DarkMode.png)
-![alt text](screenshots/LightMode.png)
+![dark mode](screenshots/DarkMode.png) ![light mode](screenshots/LightMode.png)
+
 ---
 
 ## 💡 Best Practices
@@ -84,12 +86,13 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 - Do not edit stego images after they're created.
 - Download and decode directly—don't upload modified files.
 - Bigger images let you hide bigger/more secrets.
-- Save your secret password: without it, extraction is impossible (even for you!).
+- **Save your secret password:** without it, extraction is impossible (even for you!).
 
 ---
 
 ## 📦 Project Structure
 
+```markdown
 stego_app/
 ├── app.py
 ├── requirements.txt
@@ -97,25 +100,43 @@ stego_app/
 │ ├── style.css
 │ ├── progress.js
 │ └── stego.js
-└── templates/
-└── index.html
+├── templates/
+│ ├── base.html
+│ ├── home.html
+│ ├── encode.html
+│ ├── decode.html
+│ ├── history.html
+│ └── ... (any other templates)
+└── README.md
 
----
+
+```---
 
 ## 🏗️ Installation
 
+**Requirements:**  
+- Python 3.8 or newer (recommend 3.10+)
+- `virtualenv` (optional but recommended)
+
+```python
 git clone <repo_url>
 cd stego_app
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+
 ---
 
 ## 🔨 Running the App
 
+```python
 python app.py
+```
 
-Go to [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
+
+Then open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 
 ---
 
@@ -156,7 +177,14 @@ Go to [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 - **Pillow** for handling images pixel-by-pixel.
 - **cryptography (Fernet)** for strong encryption.
 - **SHA-256 hashing** for verifying stego image download.
-- **Pure HTML/JS/CSS for UI**—no dependencies outside Flask and Python libraries.
+- **Pure HTML/JS/CSS for UI**—no frontend/interactivity dependencies outside Flask and Python backend.
+
+---
+
+## 🤖 AI-Assisted Development
+
+> Significant portions of this project—code, UI, and documentation—were built, tested, or refined with the help of modern AI tools (e.g. Perplexity, ChatGPT, Copilot).  
+> Contributors are encouraged to use, review, and improve upon this code, regardless of background or tooling.
 
 ---
 
@@ -168,9 +196,6 @@ MIT License
 
 ## 🙋 Contact & Acknowledgments
 
-- Designed for privacy and learning by [Your Name].
+- Designed for privacy and learning by Vasista Nampally.
 - Pull requests, suggestions, and collaborations are welcomed.
-
----
-This Markdown can be directly copied into your README.md file and viewed on GitHub or similar platforms for visually organized documentation, user guidance, technical insight, and contributor clarity.
 
