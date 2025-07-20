@@ -74,8 +74,8 @@ The most common method is **LSB (Least Significant Bit)**: hiding bits in the lo
 
 > For a preview, see in-app: drag an image, type a secret, and see the modern glassy interface, dark and light toggle, and capacity bars.
 
-![alt text](DarkMode.png)
-![alt text](LightMode.png)
+![alt text](screenshots/DarkMode.png)
+![alt text](screenshots/LightMode.png)
 ---
 
 ## 💡 Best Practices
