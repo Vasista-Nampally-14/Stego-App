@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Stego App - Home{% endblock %}
+
+{% block content %}
+<div class="home-hero">
+  <div class="hero-center">
+    <span class="hero-icon">🕵️</span>
+    <h1 class="hero-title">Steganography App</h1>
+    <p class="hero-desc">
+      Hide secret <b>messages</b> or <b>files</b> inside images, protect them with a password, and share safely —
+      all in your browser, open-source &amp; private.<br>
+      <span class="hero-note">Easy. Free. No data leaves your device.</span>
+    </p>
+  </div>
+</div>
+<div class="home-cards-area">
+  <div class="feature-card">
+    <div class="feature-icon">🎨</div>
+    <div class="feature-title">Hide Message or File</div>
+    <div class="feature-desc">
+      Use <b>Encode</b> to embed a message or any file inside a photo securely with a password.
+    </div>
+    <a href="{{ url_for('encode.show_encode') }}" class="feature-btn">Go to Encode &rarr;</a>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🖼️</div>
+    <div class="feature-title">Reveal a Secret</div>
+    <div class="feature-desc">
+      Use <b>Decode</b> to extract a hidden message or file from an image, provided you know the password.
+    </div>
+    <a href="{{ url_for('decode.show_decode') }}" class="feature-btn">Go to Decode &rarr;</a>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🗂️</div>
+    <div class="feature-title">Session History</div>
+    <div class="feature-desc">
+      Quickly review, export, or clear your recent encoding and decoding actions.
+    </div>
+    <a href="{{ url_for('show_history') }}" class="feature-btn">View History &rarr;</a>
+  </div>
+</div>
+{% endblock %}

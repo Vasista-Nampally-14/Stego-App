@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}Encode - Stego App{% endblock %}
+
+{% block content %}
+<div class="encode-page">
+    <div class="container-split">
+        <div class="container-card">
+            <h2 class="card-title">🔐 Hide a Message or File</h2>
+            <div class="card-desc">
+                <p>
+                    Secretly encode a message or file inside a PNG/JPG photo.<br>
+                    Only someone with the password and the output image can reveal the contents.
+                </p>
+                <ul class="card-hints">
+                    <li>Max message size depends on image size.</li>
+                </ul>
+            </div>
+
+            <form method="POST" action="{{ url_for('encode.encode') }}" enctype="multipart/form-data"
+                class="form-box glassy" id="encodeForm" aria-label="Hide a secret message" autocomplete="off"
+                onsubmit="return validateEncode();">
+                <h2><span class="icon-btn">🎨</span> Hide a message</h2>
+                <div class="dropzone" id="encodeDrop" tabindex="0" aria-label="Drop PNG/JPG here or click to select.">
+                    <span id="chosenImageName">Click or drag image here (PNG/JPG)</span>
+                </div>
+                <input type="file" class="file-input" id="encodeFile" name="image" required
+                    accept="image/png,image/jpeg" style="display:none">
+                <div class="capacity-bar" id="capacity-info"></div>
+                <label for="hideFile">File to Hide (optional):</label>
+                <input type="file" id="hideFile" name="hide_file" onchange="updateEncodeCapacity();">
+                <label for="encodeMessage">Message (optional):</label>
+                <textarea name="message" id="encodeMessage" placeholder="Type your secret..."
+                    oninput="updateEncodeCapacity();"></textarea>
+                <span id="encodeMessageCounter"
+                    style="font-size:92%;color:#555;display:block;margin-bottom:4px;"></span>
+                <div class="capacity-bar" id="encode-usage-status"></div>
+                <label for="encodePassword">Password:</label>
+                <input type="password" name="password" id="encodePassword" placeholder="Choose a password" required>
+                <div style="margin:12px 0;">
+                    <button type="submit"><span class="icon-btn">🛡️</span> Encode & Download</button>
+                    <button type="button" onclick="cancelEncodeOp()" class="cancel-btn">Cancel</button>
+                </div>
+                {% if preview_id and (not step_state or step_state.get('encode')) %}
+                <div class="preview-section" id="encodePreviewSection">
+                    <img src="{{ url_for('encode.preview_file', filename=preview_id) }}" alt="Stego image preview"
+                        style="max-width:320px;max-height:160px;display:block;margin-bottom:0.5em;">
+                    <a id="downloadStegoImage" href="{{ url_for('encode.preview_file', filename=preview_id) }}" download="{{ preview_fn }}">⬇️ Download Stego Image</a>
+                    <button type="button" class="button" id="hidePreviewBtn" style="margin-left:1em;">Hide Preview</button>
+                    {% if preview_hash %}
+                    <div class="hash-panel">SHA256: <code>{{ preview_hash }}</code></div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if enc_status %}
+                <div class="below-status {{enc_status}}">{{ enc_msg }}</div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- SIDE PANEL: Hiding Tips + Preview Notes -->
+        <div class="container-card info-card side-tips">
+            <h3 style="margin-top: 0.3em;">💡 Hiding Tips</h3>
+            <ul>
+                <li>Use a photograph you took (not found online).</li>
+                <li>Photos with complex details hide more!</li>
+                <li>Remember your password—you can't recover secrets without it.</li>
+            </ul>
+            <div style="font-size:90%;color:#557;margin-top:1.7em;">
+                Never share the password or output image in public.
+            </div>
+
+            <!-- 🚩 Add the preview note here, as requested -->
+            <div class="card-notes" style="background:#eef7fe;border-left:4px solid #2196f3;padding:8px 12px;margin-top:1.5em;font-size:94%;">
+                <b>🛈 Preview & download notes:</b>
+                <ul style="margin:0 0 0 1.1em;padding:0;">
+                    <li>
+                        After encoding, a preview of your stego image will appear with options to download or hide it.
+                    </li>
+                    <li>
+                        The preview disappears automatically if you:<br>
+                        <ul style="margin:0.25em 0 0 1.2em;padding:0;">
+                            <li>Click "Download Stego Image"</li>
+                            <li>Click "Hide Preview"</li>
+                            <li>Click "Cancel"</li>
+                        </ul>
+                    </li>
+                    <li>
+                        To start another encode, simply use Cancel or refresh.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    if (!document.getElementById('encodeForm')) return;
+
+    // Elements
+    let encodeDrop = document.getElementById('encodeDrop');
+    let encodeFile = document.getElementById('encodeFile');
+    let chosenImageName = document.getElementById('chosenImageName');
+    let encodeMaxChars = 0;
+
+    // Dropzone click/drag/drop
+    encodeDrop.addEventListener('click', () => encodeFile.click());
+    encodeDrop.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') encodeFile.click();
+    });
+    encodeDrop.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        encodeDrop.classList.add('drag-over');
+    });
+    encodeDrop.addEventListener('dragleave', (e) => {
+        encodeDrop.classList.remove('drag-over');
+    });
+    encodeDrop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        encodeDrop.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+            encodeFile.files = e.dataTransfer.files;
+            encodeFile.dispatchEvent(new Event('change'));
+        }
+    });
+    encodeFile.addEventListener('change', function () {
+        if (encodeFile.files.length) {
+            chosenImageName.textContent = encodeFile.files[0].name + " selected";
+        } else {
+            chosenImageName.textContent = "Click or drag image here (PNG/JPG)";
+        }
+        window.showImageCapacity(encodeFile);
+        window.updateEncodeCapacity();
+    });
+
+    document.getElementById('encodeMessage').addEventListener('input', function () {
+        window.updateEncodeMessageCounter();
+        window.updateEncodeCapacity();
+    });
+    document.getElementById('hideFile').addEventListener('change', window.updateEncodeCapacity);
+
+    // GLOBALS for event attribute access
+    window.showImageCapacity = function(input) {
+        let info = document.getElementById('capacity-info');
+        info.innerText = "";
+        if (!input.files[0]) {
+            encodeMaxChars = 0;
+            window.updateEncodeMessageCounter();
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            let img = new Image();
+            img.onload = function () {
+                let maxBits = img.width * img.height * 3;
+                let usableBytes = Math.floor(maxBits / 8);
+                encodeMaxChars = usableBytes;
+                document.getElementById('encodeMessage').maxLength = encodeMaxChars;
+                window.updateEncodeMessageCounter();
+                let sizeStr, unit = "bytes";
+                let b = usableBytes;
+                if (b > 1024 * 1024) { sizeStr = (b / 1048576).toFixed(2); unit = "MB"; }
+                else if (b > 1024) { sizeStr = (b / 1024).toFixed(1); unit = "KB"; }
+                else { sizeStr = b; }
+                info.innerHTML =
+                    `<b>Image capacity:</b> <strong>${sizeStr} ${unit}</strong> (${img.width}x${img.height} = ${maxBits} bits)`;
+                info.dataset.maxbits = maxBits;
+                window.updateEncodeCapacity();
+            }
+            img.src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    window.updateEncodeMessageCounter = function() {
+        const msgInput = document.getElementById('encodeMessage');
+        const msgCounter = document.getElementById('encodeMessageCounter');
+        const count = msgInput.value.length;
+        if (encodeMaxChars > 0) {
+            msgCounter.textContent = `Text: ${count}/${encodeMaxChars} chars`;
+        } else {
+            msgCounter.textContent = '';
+        }
+    }
+
+    window.updateEncodeCapacity = function () {
+        const imgInput = document.getElementById('encodeFile');
+        const fileInput = document.getElementById('hideFile');
+        const msgInput = document.getElementById('encodeMessage');
+        const status = document.getElementById('encode-usage-status');
+        let info = document.getElementById('capacity-info');
+        if (!imgInput.files[0] || !info.dataset.maxbits) { status.innerText = ''; window.updateEncodeMessageCounter(); return; }
+        let maxBits = parseInt(info.dataset.maxbits);
+        let maxKB = Math.floor(maxBits / 8 / 1024);
+
+        let msgLen = msgInput.value.length;
+        let msgBits = msgLen * 8;
+        let fileBits = 0, fileKB = 0, fileChars = 0;
+
+        if (fileInput && fileInput.files.length > 0) {
+            const f = fileInput.files[0];
+            fileKB = Math.ceil(f.size / 1024);
+            fileBits = Math.ceil(f.size * 8 * 4 / 3);
+            fileChars = Math.ceil(f.size * 4 / 3);
+        }
+
+        let secretBits = (msgLen > 0 && fileInput.files.length > 0) ? msgBits + fileBits
+            : (fileInput.files.length > 0) ? fileBits
+            : msgBits;
+
+        let secretKB = secretBits / 8 / 1024;
+        let usedBits = secretBits;
+        let displayMsg = "";
+        if (fileInput.files.length > 0)
+            displayMsg += `File: ${fileKB} KB (${fileChars} base64 chars)`;
+        if (displayMsg)
+            displayMsg += "<br>";
+        displayMsg += `<b>${usedBits}</b> bits (${secretKB.toFixed(2)} KB) of <b>${maxBits}</b> bits (${maxKB} KB) used`;
+        if (usedBits > maxBits)
+            displayMsg += `<br><span style="color:tomato;font-weight:bold;">❌ Too large! Secret data exceeds image capacity.</span>`;
+        status.innerHTML = displayMsg;
+        window.updateEncodeMessageCounter();
+    }
+
+    window.cancelEncodeOp = function () {
+        document.getElementById('encodeForm').reset();
+        document.getElementById('capacity-info').innerText = '';
+        document.getElementById('encode-usage-status').innerText = '';
+        chosenImageName.textContent = 'Click or drag image here (PNG/JPG)';
+        encodeMaxChars = 0;
+        window.updateEncodeMessageCounter();
+        document.getElementById('encodeMessage').maxLength = "";
+
+        // Hide preview AND clear server session
+        const preview = document.getElementById('encodePreviewSection');
+        if (preview) {
+            fetch('{{ url_for("encode.clear_preview") }}', { method: 'POST' });
+            preview.style.display = "none";
+        }
+    }
+
+    window.validateEncode = function () {
+        const fileInput = document.getElementById('encodeFile');
+        const message = document.getElementById('encodeMessage').value.trim();
+        const hideFile = document.getElementById('hideFile');
+        if (!fileInput.files.length) {
+            alert("Please select an image.");
+            return false;
+        }
+        if (!message && (!hideFile.files || !hideFile.files.length)) {
+            alert("Provide either a message or file to hide.");
+            return false;
+        }
+        let status = document.getElementById('encode-usage-status');
+        if (status.innerHTML.includes("❌")) {
+            alert("Secret is too big for this image. Please shorten it or use a larger PNG.");
+            return false;
+        }
+        return true;
+    }
+
+    // PREVIEW SECTION LOGIC (download/hide preview also clears backend preview for real refresh)
+    const preview = document.getElementById('encodePreviewSection');
+    if (preview) {
+        // Hide preview on download (and clear preview from session)
+        const dl = document.getElementById('downloadStegoImage');
+        if (dl) dl.addEventListener('click', function () {
+            fetch('{{ url_for("encode.clear_preview") }}', { method: 'POST' });
+            preview.style.display = "none";
+        });
+
+        // Hide preview on Hide Preview button click (and clear preview from session)
+        const hideBtn = document.getElementById('hidePreviewBtn');
+        if (hideBtn) hideBtn.addEventListener('click', function () {
+            fetch('{{ url_for("encode.clear_preview") }}', { method: 'POST' });
+            preview.style.display = "none";
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+<form method="POST" action="{{ url_for('encode.encode') }}" enctype="multipart/form-data" class="form-box glassy" id="encodeForm"
+  aria-label="Hide a secret message" autocomplete="off" onsubmit="return validateEncode();">
+  <h2><span class="icon-btn">🎨</span> Hide a message</h2>
+  <div class="dropzone" id="encodeDrop" tabindex="0" aria-label="Drop PNG/JPG here or click to select.">
+    <span id="chosenImageName">Click or drag image here (PNG/JPG)</span>
+  </div>
+  <input type="file" class="file-input" id="encodeFile" name="image" required accept="image/png,image/jpeg" style="display:none">
+  <div class="capacity-bar" id="capacity-info"></div>
+  <label for="hideFile">File to Hide (optional):</label>
+  <input type="file" id="hideFile" name="hide_file" onchange="updateEncodeCapacity();">
+  <label for="encodeMessage">Message (optional):</label>
+  <textarea name="message" id="encodeMessage" placeholder="Type your secret..." oninput="updateEncodeCapacity();"></textarea>
+  <span id="encodeMessageCounter" style="font-size:92%;color:#555;display:block;margin-bottom:4px;"></span>
+  <div class="capacity-bar" id="encode-usage-status"></div>
+  <label for="encodePassword">Password:</label>
+  <input type="password" name="password" id="encodePassword" placeholder="Choose a password" required>
+  <div style="margin:12px 0;">
+    <button type="submit"><span class="icon-btn">🛡️</span> Encode & Download</button>
+    <button type="button" onclick="cancelEncodeOp()" class="cancel-btn">Cancel</button>
+  </div>
+  {% if preview_id and (not step_state or step_state.get('encode')) %}
+  <div class="preview-section">
+    <img src="{{ url_for('encode.preview_file', filename=preview_id) }}" alt="Stego image preview" style="max-width:320px;max-height:160px;display:block;margin-bottom:0.5em;">
+    <a href="{{ url_for('encode.preview_file', filename=preview_id) }}" download="{{ preview_fn }}">⬇️ Download Stego Image</a>
+    {% if preview_hash %}
+    <div class="hash-panel">SHA256: <code>{{ preview_hash }}</code></div>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if enc_status %}
+    <div class="below-status {{enc_status}}">{{ enc_msg }}</div>
+  {% endif %}
+</form>

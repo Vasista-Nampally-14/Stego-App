@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Stego App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-shell">
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="logo-emoji" style="font-size:2em">🕵️</span>
+                <span class="logo-title" style="font-weight:600;font-size:1.2em;">Stego App</span>
+                <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" type="button"
+                    aria-label="Collapse sidebar">
+                    <span style="font-size:1.65em;">☰</span>
+                </button>
+            </div>
+            <a href="{{ url_for('home') }}" class="sidebar-link {% if request.endpoint == 'home' %}active{% endif %}">
+                🏠 Home
+            </a>
+            <a href="{{ url_for('encode.show_encode') }}"
+                class="sidebar-link {% if request.endpoint and request.endpoint.startswith('encode.') %}active{% endif %}">
+                🛡️ Encode
+            </a>
+            <a href="{{ url_for('decode.show_decode') }}"
+                class="sidebar-link {% if request.endpoint and request.endpoint.startswith('decode.') %}active{% endif %}">
+                🔍 Decode
+            </a>
+            <a href="{{ url_for('show_history') }}"
+                class="sidebar-link {% if request.endpoint == 'show_history' %}active{% endif %}">
+                🗂️ History
+            </a>
+            <div class="sidebar-theme-switch">
+                <label class="theme-switch-label">
+                    <span class="theme-switch-text">
+                        <span id="sidebar-theme-icon">🌙</span>
+                        <span id="sidebar-theme-mode">Dark mode</span>
+                    </span>
+                    <input id="sidebar-theme-toggle" type="checkbox">
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+        </nav>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="site-footer">
+            <small>
+                © 2025 Stego App •
+                <span class="smalllink">
+                    <a href="https://github.com/Vasista-Nampally-14/Stego-App" target="_blank" rel="noopener">Get the source</a>
+                </span>
+            </small>
+        </footer>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+        const themeToggle = document.getElementById('sidebar-theme-toggle');
+        const sidebarThemeIcon = document.getElementById('sidebar-theme-icon');
+        const sidebarThemeMode = document.getElementById('sidebar-theme-mode');
+
+        // --- SIDEBAR Collapse/Expand ---
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('show');
+        }
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('show');
+        }
+        function toggleSidebar() {
+            if (sidebar.classList.contains('open')) closeSidebar();
+            else openSidebar();
+        }
+        collapseBtn && (collapseBtn.onclick = toggleSidebar);
+        sidebarOverlay && (sidebarOverlay.onclick = closeSidebar);
+        sidebar.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', closeSidebar);
+        });
+
+        // --- THEME toggle logic ---
+        function updateThemeSwitchUI(isDark) {
+            if (themeToggle) themeToggle.checked = isDark;
+            if (sidebarThemeIcon) sidebarThemeIcon.textContent = isDark ? '🌙' : '☀️';
+            if (sidebarThemeMode) sidebarThemeMode.textContent = isDark ? "Dark mode" : "Light mode";
+        }
+    
+        function setThemeDark(on) {
+            if (on) document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
+            updateThemeSwitchUI(on);
+        }
+        function saveThemePref(isDark) {
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+        if (themeToggle) {
+            themeToggle.onchange = function () {
+                const isDark = themeToggle.checked;
+                setThemeDark(isDark);
+                saveThemePref(isDark);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+            let isDark = false;
+            try {
+                const saved = localStorage.getItem('theme');
+                if (saved === 'dark') isDark = true;
+                else if (saved === 'light') isDark = false;
+                else if (window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
+            } catch { }
+            setThemeDark(isDark);
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

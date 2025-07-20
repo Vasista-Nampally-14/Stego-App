@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}History - Stego App{% endblock %}
+{% block content %}
+<div class="container-card">
+  <h2 style="margin-bottom:1em;">🗂️ Session History</h2>
+  {% if history %}
+    <ul class="history-list">
+      {% for item in history %}
+      <li>
+        <span class="hist-icon">{% if item.image %}🖼️{% else %}💬{% endif %}</span>
+        <span class="hist-action">{{ item.action }}</span>
+        {% if not item.image %}
+          <span class="decoded-msg">: {{ item.msg }}</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="session-tools" style="margin-top:1.2em;">
+      <form action="{{ url_for('clear_history') }}" method="get" style="display:inline;">
+        <button type="submit" class="button">Clear History</button>
+      </form>
+      <a href="{{ url_for('export_session') }}" class="button">Export Session</a>
+    </div>
+  {% else %}
+    <em>No recent actions this session.</em>
+  {% endif %}
+</div>
+{% endblock %}

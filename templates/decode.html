@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Decode - Stego App{% endblock %}
+{% block content %}
+<div class="decode-page">
+  <div class="container-split">
+    <div class="container-card">
+      <h2 class="card-title">🔍 Reveal Hidden Data</h2>
+      <div class="card-desc">
+        <p>
+          Select a PNG/JPG image with a hidden message.<br>
+          Enter the password. We'll extract all secrets for you.
+        </p>
+        <ul class="card-hints">
+          <li>Files or text hidden by <b>this app</b> only.</li>
+          <li>Only <b>PNG</b> images are reliably safe for decoding.</li>
+        </ul>
+      </div>
+      <!-- DECODE FORM -->
+      <form method="POST" action="{{ url_for('decode.decode') }}" enctype="multipart/form-data" class="form-box glassy" id="decodeForm"
+        aria-label="Reveal a hidden message from image" role="region" tabindex="0" onsubmit="return validateDecode();">
+        <h2><span class="icon-btn">🖼️</span> Reveal a message</h2>
+        <div class="dropzone" id="decodeDrop" tabindex="0" aria-label="Drop PNG image here or click to select.">
+          Drag &amp; drop a PNG here or click to browse.
+        </div>
+        <input type="file" id="decodeFile" name="stego_image" style="display:none" required
+          accept="image/png,image/jpeg" onchange="handleFileInput(this,'decodeDrop');">
+        <label for="decodePassword">Password:</label>
+        <input type="password" name="password" id="decodePassword" placeholder="Enter password"
+          aria-label="Decryption password" required>
+        <button type="submit"><span class="icon-btn">🔍</span> Decode</button>
+        <button type="button" onclick="cancelDecodeOp()" class="cancel-btn">Cancel</button>
+        <div class="progress-area" id="decode-progress" style="display:none;">
+          <div class="progress-bar">
+            <div id="decodeProgressBarAnim"></div>
+          </div>
+          <span id="decodeProgressText">0%</span>
+          <div id="decodeAfterMsg" class="after-msg"></div>
+        </div>
+        {% if dec_msg and (not step_state or step_state.get('decode')) %}
+        <div class="below-status {{dec_status}}">{{ dec_msg }}</div>
+        {% if dec_points %}
+        <button type="button" class="details-toggle" onclick="toggleDetails('dec-details')">Show/hide decode details</button>
+        <div class="points-panel" id="dec-details" style="display:none;">
+          <div>Image: {{dec_points.dimension}} | Capacity: {{dec_points.image_bits}} bits ({{'%.2f' % dec_points.image_kb}} KB)</div>
+          {% if dec_points.bits_scanned is defined %}
+          <div>Bits scanned: {{dec_points.bits_scanned}} ({{'%.2f' % dec_points.scanned_kb}} KB)</div>
+          {% endif %}
+          <div>Status: <b>{{dec_points.status}}</b></div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% if decoded_message %}
+        <div class="decode-result"><strong>Secret Message:</strong><br>
+          <span id="decodedText">{{ decoded_message }}</span>
+          <button type="button" class="clipboard-btn" onclick="copyDecoded()">📋 Copy</button>
+        </div>
+        {% endif %}
+        {% if decoded_file %}
+        <div class="decode-file-preview glassy" style="margin-top:1em;">
+          <strong>Decoded File:</strong><br>
+          <div style="margin:0.5em 0;">
+            {% if decoded_file.is_image %}
+              <img src="{{ decoded_file.preview_url }}" alt="{{ decoded_file.filename }}" style="max-width:220px;max-height:150px;display:block;margin-bottom:0.4em;">
+            {% elif decoded_file.is_text %}
+              <pre class="decoded-text-snippet" style="max-width:400px;max-height:120px;overflow:auto;background:#f6f8fa;border-radius:6px;padding:0.5em 0.8em;">{{ decoded_file.text_snippet }}</pre>
+            {% else %}
+              <span class="file-icon" style="font-size:2em;">📄</span>
+            {% endif %}
+          </div>
+          <span class="filename">{{ decoded_file.filename }}</span>
+          <span class="filesize" style="color:#888;font-size:92%;margin-left:0.5em;">({{ decoded_file.size | filesizeformat }})</span>
+          <br>
+          <a class="button" style="margin-top:0.6em;display:inline-block" href="{{ decoded_file.download_url }}" download="{{ decoded_file.filename }}">⬇️ Download File</a>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+    <div class="container-card info-card side-tips">
+      <h3 style="margin-top: 0.3em;">📂 Output Details</h3>
+      <ul>
+        <li>If message found: text shown directly.</li>
+        <li>If a file is hidden: you'll see a preview & download option.</li>
+        <li>Nothing hidden? You'll see a warning.</li>
+      </ul>
+      <div style="font-size:90%;color:#557;margin-top:2em;">
+        Decoding only works with unmodified images created by this app.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  if (document.getElementById('decodeForm')) {
+    // DECODE DROPZONE LOGIC from index.html
+    let decodeDrop = document.getElementById('decodeDrop');
+    let decodeInput = document.getElementById('decodeFile');
+    decodeDrop.addEventListener('click', function () { decodeInput.click(); });
+    decodeDrop.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') decodeInput.click();
+    });
+    decodeDrop.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      decodeDrop.classList.add('drag-over');
+    });
+    decodeDrop.addEventListener('dragleave', function (e) {
+      decodeDrop.classList.remove('drag-over');
+    });
+    decodeDrop.addEventListener('drop', function (e) {
+      e.preventDefault();
+      decodeDrop.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length) {
+        decodeInput.files = files;
+        decodeInput.dispatchEvent(new Event('change'));
+      }
+    });
+    decodeInput.addEventListener('change', function () {
+      if (decodeInput.files && decodeInput.files[0]) {
+        decodeDrop.innerHTML = "<b>" + decodeInput.files[0].name + "</b> selected";
+      }
+    });
+
+    window.validateDecode = function() {
+      let file = decodeInput ? decodeInput.files[0] : null;
+      if (file && !file.name.endsWith('.png')) {
+        return confirm("JPEG is NOT safe for steganography. Only PNG is recommended. Proceed?");
+      }
+      return true;
+    }
+    window.cancelDecodeOp = function() {
+      document.getElementById('decodeForm').reset();
+      decodeDrop.innerHTML = "Drag &amp; drop a PNG here or click to browse.";
+    }
+  }
+});
+
+// Universal helpers (these can be here or in a shared JS file)
+function toggleDetails(id) {
+  var details = document.getElementById(id);
+  if (details.style.display === "none" || details.style.display === "") {
+    details.style.display = "";
+  } else {
+    details.style.display = "none";
+  }
+}
+function copyDecoded() {
+  navigator.clipboard.writeText(document.getElementById('decodedText').textContent)
+    .then(()=>alert('Copied!'));
+}
+</script>
+<script src="{{ url_for('static', filename='progress.js') }}"></script>
+{% endblock %}
